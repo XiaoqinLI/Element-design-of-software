@@ -1,12 +1,19 @@
 ## File: Graph.py
-## Description: we will be adding Edge class that we developed in class. We will be
+## Description: This is the 15th assignment: In this assignment we will be
+##              adding Edge class that we developed in class. We will be
 ##              creating a graph from an input data file called graph.txt.
 ##              After the list of edges there will be a label for the starting
 ##              vertex. This will be the starting vertex for the Depth First
 ##              Search and Breadth First Search as well as the starting vertex
 ##              for the Dijkstra's shortest path algorithm.
+##              Total time consumed: 7.5 hours
+## Student's Name: Xiaoqin LI 
+## Student's UT EID: XL4873
+## Course Name: CS 313E
+## Unique Number: 53580
 ## Date Created: 04/29/2014
 ## Date Last Modified:05/05/2014
+
 
 import copy
 
@@ -68,9 +75,9 @@ class Vertex (object):
     return str (self.label)
 
 class Edge (object):
-  def __init__ (self, fromVertex, toVertex, weight):
-    self.u = fromVertex
-    self.v = toVertex
+  def __init__ (self, fromVertex, toVertex, weight=1):
+    self.fr = fromVertex
+    self.to = toVertex
     self.weight = weight
 
   # comparison operators
@@ -96,6 +103,7 @@ class Graph (object):
   def __init__ (self):
     self.Vertices = []
     self.adjMat = []
+    self.Edges = []
 
   # checks if a vertex label already exists
   def hasVertex (self, label):
@@ -104,8 +112,16 @@ class Graph (object):
       if (label == (self.Vertices[i]).label):
         return True
     return False
+  
+  # check if a edge already exists
+  def hasEdge(self, edge):
+    for entry in self.Edges:
+      if entry.fr == edge.fr and entry.to == edge.to:
+        return True
+    return False
 
   # add a vertex with given label
+  # create adjmat
   def addVertex (self, label):
     if not self.hasVertex (label):
       self.Vertices.append (Vertex (label))
@@ -124,11 +140,14 @@ class Graph (object):
   # add weighted directed edge to graph
   def addDirectedEdge (self, start, finish, weight = 1):
     self.adjMat[start][finish] = weight
+    self.Edges.append(Edge(start, finish))
+    
 
   # add weighted undirected edge to graph
   def addUndirectedEdge (self, start, finish, weight = 1):
     self.adjMat[start][finish] = weight
     self.adjMat[finish][start] = weight
+    self.Edges.append(Edge(start, finish))
 
   # return an unvisited vertex adjacent to v
   def getAdjUnvisitedVertex (self, v):
@@ -138,8 +157,15 @@ class Graph (object):
         return i
     return -1
 
+  # stack is empty reset the flags
+  def flagReset(self):    
+    nVert = len (self.Vertices)
+    for i in range (nVert):
+      (self.Vertices[i]).visited = False
+      
   # does a depth first search in a graph
   def dfs (self, v):
+    self.flagReset()
     # create a stack
     theStack = Stack()
 
@@ -157,15 +183,12 @@ class Graph (object):
         (self.Vertices[u]).visited = True
         print (self.Vertices[u])
         theStack.push(u)
-
-    # stack is empty reset the flags
-    nVert = len (self.Vertices)
-    for i in range (nVert):
-      (self.Vertices[i]).visited = False
-
-
+        
+    
+    
   # does a breadth first search in a graph
-  def bfs (self, v):
+  def bfs (self, v, flag = True):
+    self.flagReset()
     # create a queue
     theQueue = Queue ()
 
@@ -184,12 +207,8 @@ class Graph (object):
         print (self.Vertices[v2])
         theQueue.enqueue (v2)
         v2 = self.getAdjUnvisitedVertex (v1)
-##      print("queue: ",theQueue.queue)
-
-    # queue is empty reset the flags
-    nVert = len (self.Vertices)
-    for i in range (nVert):
-      (self.Vertices[i]).visited = False
+    if flag == True:  
+      self.flagReset()
 
       
 # get index from vertex label
@@ -220,8 +239,8 @@ class Graph (object):
     if fr >= 0:
       for j in range(len(self.adjMat[fr])):
         if self.adjMat[fr][j] != 0:
-          neighbor_city = self.Vertices[j].label
-          neighbor_list.append(neighbor_city)
+          neighbor = self.Vertices[j].label
+          neighbor_list.append(neighbor)
       return neighbor_list
     else:
       return neighbor_list # just return the empty list
@@ -244,12 +263,12 @@ class Graph (object):
     """
     # reset the flags
     nVert = len (self.Vertices)
-    visited_list = []  
+    visited_list = []
     # create a stack
     theStack = Stack()
     # mark the vertex as visited and push on the stack
     (self.Vertices[0]).visited = True
-    theStack.push (0)
+    theStack.push (0)# argument is an index.
     
     while (not theStack.isEmpty()):
       # get an adjacent unvisited vertex
@@ -259,22 +278,47 @@ class Graph (object):
       else:
         for i in range (nVert):
           if (self.adjMat[u][i] > 0) and (i in theStack.stack):
-             for i in range (nVert):
-               (self.Vertices[i]).visited = False
+             self.flagReset()
              return True
         (self.Vertices[u]).visited = True
         theStack.push(u)
         visited_list.append(u)
         
-    for i in range (nVert):
-      (self.Vertices[i]).visited = False
+    self.flagReset()
+    
     return False
-        
+
+  def isConnected_undirect(self,v):
+    self.bfs(v,False)
+    for entry in self.Vertices:
+      if entry.visited == False:
+        return False
+    return True
+  
+  # could modify this to calculate how many pieces are there.
+  def isSingle_direct(self):
+    v_set = set()
+    for entry in self.Edges:
+      v_set.add(entry.fr)
+      v_set.add(entry.to)
+    print( len(v_set))
+    print(len(self.Vertices))
+
+    return len(v_set) == len(self.Vertices)
+       
   # return a list of vertices after a topological sort
   def toposort (self):
-    # nail down which ones do not have a parent before sorting
-##    start_Queue = Queue()
+    #1 nail down which ones do not have an input vertex before sorting
+    # hard copy a adjmat, do not modify origin copy
+    copymat = copy.deepcopy(self.adjMat)
+    for entry in self.adjMat:
+      for en in entry:
+        print(en, end = ' ')
+      print()
     start_list = []
+
+    # this is O(n^2), not good,
+    # can call dfs, get one start, then call dfs toposort
     nVert = len (self.Vertices)
     for i in range(nVert):
       start_flag = True
@@ -284,29 +328,7 @@ class Graph (object):
           break
       if start_flag == True:
         start_list.append(i)
-##        start_Queue.enqueue(i)
-##    # Using Queue class to solve topological algo
-##    topo_list_idx = []
-##    temp_graph_Mat = copy.deepcopy(self.adjMat)
-##    while (not start_Queue.isEmpty()):
-##      V = start_Queue.dequeue()
-##      topo_list_idx.append(V)
-##      neighbors = self.getNeighbors(self.Vertices[V].label)
-##      for entry in neighbors:
-##        neighbor_idx = self.getIndex(entry)
-##        temp_graph_Mat[V][neighbor_idx] = 0      
-##        start_flag = True
-##        for j in range(nVert):
-##          if (temp_graph_Mat[j][neighbor_idx] != 0):
-##            start_flag = False
-##            break
-##        if start_flag == True:
-##          start_Queue.enqueue(neighbor_idx)
-##          
-##    topo_list = []
-##    for idx in topo_list_idx:
-##       topo_list.append(self.Vertices[idx].label)
-##    return topo_list
+    print(start_list)
         
     # Using Stack class to solve topological algo
     topo_list = []
@@ -331,35 +353,36 @@ class Graph (object):
     
   # prints a list of edges for a minimum cost spanning tree
   # list is in the form [v1 - v2, v2 - v3, ..., vm - vn]
+  # applying Kruskal's algorithm.
   def spanTree (self, start):
     start_index = self.getIndex(start)
     span_tree = []
-    span_vertice = []
-    while (len(span_vertice) < len(self.Vertices)):
-      find_one = False
-      for entry in Edge_list:
-        if entry[0] == start_index:
-          if entry[0] not in span_vertice or entry[1] not in span_vertice:
-            find_one = True
-            back_counter = 0
-            if entry[0] not in span_vertice:
-              span_vertice.append(entry[0])
-            if entry[1] not in span_vertice:
-              span_vertice.append(entry[1])
-            start_index = entry[1]
-            path_string = str(self.Vertices[entry[0]].label) + " - " + str(self.Vertices[entry[1]].label)
-            span_tree.append(path_string)
-        else:
-          continue       
-      if find_one:
-         continue
-      else:
-         back_counter += 1
-         start_index = span_vertice[len(span_vertice) - back_counter-1]
+    span_vertice = [start_index]
+    while(len(span_vertice) < len(self.Vertices)):
+      fr_index, to_index = self.getBranches(span_vertice)
+      path_string = str(self.Vertices[fr_index].label) + " - " + str(self.Vertices[to_index].label)
+      span_tree.append(path_string)
     return span_tree
+  
+  def getBranches(self, cur_vert_list):  
+      for entry in Edge_list:
+        if entry[0] in cur_vert_list and entry[1] not in cur_vert_list:
+          cur_vert_list.append(entry[1])
+          Edge_list.remove(entry)
+          return entry[0], entry[1]
+  
+  # apply bread first search to get job done, if the graph is a unweighted graph
+  # v2 = self.getAdjUnvisitedVertex (v1)
+  # if v2 != -1, counter += 1
+  # if v2 = index of toVertexLabel, return counter
+  # till it reaches "toVertex" or queue
+  # if can't reach it, return unreachable!!
+  def shortestPath_single(self, fromVertexLabel, toVertexLabel):
+    pass
   
   # determine shortest path from a single vertex
   # to all other vertex.
+  # another way to do this is to call shortestPath_single multi times
   def shortestPath (self, fromVertexLabel):
   
     start_idx = self.getIndex(fromVertexLabel)
@@ -431,7 +454,7 @@ def main():
   graph = Graph()
 
   # Open file for reading
-  inFile = open ("./graph.txt", "r")
+  inFile = open ("./graph5.txt", "r")
 
   # Read the vertices
   numVertices = int ((inFile.readline()).strip())
@@ -451,8 +474,8 @@ def main():
     finish = int (edge[1])
     weight = int (edge[2])
     graph.addDirectedEdge (start, finish, weight)
-    Edge_list.append([start,finish,weight])
-  Edge_list.sort(key = lambda column: (column[2]))
+    Edge_list.append([start,finish,weight])# all index, not edge object
+  Edge_list.sort(key = lambda column: (column[2])) # for spanning tree
   # Read the starting vertex for dfs, bfs, and shortest path
   startVertex = (inFile.readline()).strip()
   # Close file
@@ -487,5 +510,7 @@ def main():
   # test single source shortest path algorithm
   print("Shortest Path from",startVertex)
   graph.shortestPath(startVertex)
+
+  print(graph.isSingle_direct())
   
 main()
